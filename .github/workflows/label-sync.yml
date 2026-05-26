@@ -22,7 +22,7 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN }}
       LABELS_FILE: .github/labels.yml
       PRUNE: ${{ github.event.inputs.prune || 'false' }}
     steps:
