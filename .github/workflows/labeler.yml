@@ -1,0 +1,38 @@
+name: "Labeler"
+
+on:
+  issues:
+    types: [opened, edited]
+  pull_request_target:
+    types: [opened, edited]
+
+jobs:
+  triage:
+    if: >
+      ${{ github.event_name == 'issues'
+          || !startsWith(github.event.pull_request.title, 'chore(deps):') }}
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Apply Labels (issues — includes area/*)
+        if: github.event_name == 'issues'
+        uses: github/issue-labeler@v3.4
+        with:
+          repo-token: "${{ secrets.BOT_GITHUB_TOKEN }}"
+          configuration-path: .github/labeler-config.yml
+          enable-versioned-regex: 0
+          include-title: 1
+
+      - name: Apply Labels (PRs — no area/*, paths handle those)
+        if: github.event_name == 'pull_request_target'
+        uses: github/issue-labeler@v3.4
+        with:
+          repo-token: "${{ secrets.BOT_GITHUB_TOKEN }}"
+          configuration-path: .github/labeler-config-pr.yml
+          enable-versioned-regex: 0
+          include-title: 1

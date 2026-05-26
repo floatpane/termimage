@@ -1,0 +1,49 @@
+# Keyword regex labels for issues. PRs use labeler-config-pr.yml + pr-paths.yml.
+
+"bug": '\b([Bb]ug(s)?|[Ff]ix(es)?)\b'
+
+"enhancement": '\b([Ff]eat(s)?)\b'
+
+"documentation": '\b([Dd]ocumentation|[Dd]ocs|[Rr]eadme)\b'
+
+"question": '\b([Qq]uestion(s)?|[Hh]elp|[Hh]ow to)\b'
+
+"performance": '\b([Pp]erformance|[Oo]ptimiz(e|ation)|[Ss]peed|[Ee]fficiency)\b'
+
+"dependencies": '([Cc]hore\(deps\)|[Ff]ix\(deps\))'
+
+"ci": '\b([Cc]i|[Cc]ontinuous integration|[Bb]uild|[Ww]orkflow)\b'
+
+"chore": '\b([Cc]hore|[Mm]aintenance|[Rr]efactor|[Cc]leanup)\b'
+
+"security": '\b([Ss]ecurity|[Ss]andbox(ed)?|[Ll]andlock|[Ss]eccomp|[Vv]ulnerabilit(y|ies)|[Cc][Vv][Ee])\b'
+
+"os/windows": '\b([Ww]indows|[Ww]in(10|11)|[Mm]icrosoft)\b'
+
+"os/linux": '\b([Ll]inux|[Uu]buntu|[Dd]ebian|[Ff]edora|[Aa]rch [Ll]inux|[Nn]ix[Oo][Ss]|[Pp]op!?_?[Oo][Ss])\b'
+
+"os/macos": '\b([Mm]ac[Oo][Ss]?|[Oo][Ss] ?[Xx]|[Dd]arwin|[Mm]acbook)\b'
+
+"arch/arm64": '\b(arm64|aarch64|[Aa]pple ?[Ss]ilicon|[Mm][1-4]( [Pp]ro| [Mm]ax| [Uu]ltra)?|[Mm]ac(book)? [Mm][1-4])\b'
+
+"arch/amd64": '\b(amd64|x86[_-]?64|x64|[Ii]ntel( [Mm]ac)?)\b'
+
+"area/render": '\b([Rr]ender(ing|er)?|[Hh]alf[- ]?block|▀)\b'
+
+"area/protocol/kitty": '\b([Kk]itty( [Gg]raphics)?|[Gg]hostty|[Ww]ez[Tt]erm)\b'
+
+"area/protocol/sixel": '\b([Ss]ixel|[Ff]oot|[Mm]lterm|[Cc]ontour)\b'
+
+"area/protocol/halfblock": '\b([Hh]alf[- ]?block|U\+2580|Unicode block)\b'
+
+"area/decode": '\b([Dd]ecod(e|er|ing)|stb_image|stbi|[Jj]peg|[Pp]ng|[Gg]if|[Bb]mp|[Tt]ga|[Hh]dr|[Pp]sd|[Pp]nm)\b'
+
+"area/detect": '\b([Dd]etect(ion)?|[Pp]rotocol detect|TERM|TERM_PROGRAM|KITTY_WINDOW_ID)\b'
+
+"area/sandbox": '\b([Ss]andbox(ed)?|[Ll]andlock|[Ss]eccomp|[Ww]orker|[Ss]ubprocess)\b'
+
+"area/resize": '\b([Rr]esiz(e|ing)|[Ss]cal(e|ing)|[Bb]ilinear|[Aa]spect ratio)\b'
+
+"area/docs": '\b([Dd]ocumentation|[Dd]ocs|[Rr]eadme|[Mm]an ?page)\b'
+
+"area/build": '\b([Bb]uild|[Mm]akefile|[Gg]oreleaser|[Cc]go|[Cc][Gg][Oo])\b'

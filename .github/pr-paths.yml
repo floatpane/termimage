@@ -1,0 +1,73 @@
+# Path → label rules for actions/labeler@v6 (PR file paths).
+
+"area/render":
+  - changed-files:
+      - any-glob-to-any-file:
+          - render/**
+
+"area/protocol/kitty":
+  - changed-files:
+      - any-glob-to-any-file:
+          - render/kitty.go
+
+"area/protocol/sixel":
+  - changed-files:
+      - any-glob-to-any-file:
+          - render/sixel.go
+          - render/quantize.go
+
+"area/protocol/halfblock":
+  - changed-files:
+      - any-glob-to-any-file:
+          - render/halfblock.go
+
+"area/decode":
+  - changed-files:
+      - any-glob-to-any-file:
+          - decode/**
+
+"area/detect":
+  - changed-files:
+      - any-glob-to-any-file:
+          - detect/**
+
+"area/sandbox":
+  - changed-files:
+      - any-glob-to-any-file:
+          - sandbox/**
+
+"area/resize":
+  - changed-files:
+      - any-glob-to-any-file:
+          - internal/resize/**
+
+"area/docs":
+  - changed-files:
+      - any-glob-to-any-file:
+          - docs/**
+          - README.md
+          - "**/*.md"
+
+"area/build":
+  - changed-files:
+      - any-glob-to-any-file:
+          - .goreleaser*.yml
+          - .golangci.yml
+
+"ci":
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/workflows/**
+          - .github/labeler-config.yml
+          - .github/labeler-config-pr.yml
+          - .github/labels.yml
+          - .github/pr-paths.yml
+          - .github/release.yml
+
+"dependencies":
+  - changed-files:
+      - any-glob-to-any-file:
+          - go.mod
+          - go.sum
+          - docs/package.json
+          - docs/package-lock.json
