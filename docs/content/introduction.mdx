@@ -12,11 +12,13 @@ the best protocol your terminal supports.
 
 - **Three render modes** — Kitty graphics, DEC Sixel, Unicode half-block
   fallback. Auto-detected from environment.
+- **Multiple sources** — local files, `data:` URIs (base64), and `http(s)://`
+  URLs. Remote payloads capped at 64 MiB.
 - **CGo decode via stb_image** — single-header C library compiled with `-O3`.
   Significantly faster than Go's stdlib `image` package for large JPEG/PNG.
 - **Subprocess sandbox** — decode runs in an isolated child process with
-  Landlock filesystem restriction (read-only access to the target file only).
-  Seccomp allowlist is upcoming.
+  Landlock filesystem restriction (read-only access to the target file only,
+  or full lockdown for remote/data sources). Seccomp allowlist is upcoming.
 - **Zero forced dependencies** — Kitty and half-block use only stdlib. Sixel
   quantization is pure Go median-cut. The sandbox uses `golang.org/x/sys`.
 

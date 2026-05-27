@@ -17,6 +17,7 @@
 ## Features
 
 - **Auto-detected protocols** — Kitty, Sixel, half-block fallback. Works on any modern terminal.
+- **Multiple sources** — local files, `data:` URIs (base64), and `http(s)://` URLs.
 - **Sandboxed decoder** — image bytes parsed in an isolated subprocess with Landlock + seccomp on Linux.
 - **No CGO required for the consumer** — pure-Go API surface; the C decoder is contained in the worker subprocess.
 - **Terminal pixel detection** — sizes output to the actual cell pixel dimensions when available.
@@ -54,6 +55,23 @@ func main() {
     }
 }
 ```
+
+### Sources
+
+The `src` argument accepts any of:
+
+```go
+termimage.Display(os.Stdout, "/path/to/cat.png", opts)
+termimage.Display(os.Stdout, "https://example.com/cat.png", opts)
+termimage.Display(os.Stdout, "data:image/png;base64,iVBORw0KGgo...", opts)
+```
+
+Remote URLs and data URIs are fetched/decoded in the parent process, then handed
+to the sandboxed worker over stdin — the worker still runs with Landlock denying
+all filesystem access. Remote payloads are capped at 64 MiB.
+
+Use `DisplayContext` to pass a `context.Context` for cancellation of HTTP fetches
+and decoding.
 
 ### Options
 

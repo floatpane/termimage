@@ -2,15 +2,33 @@ package termimage
 
 import (
 	"bytes"
+	"encoding/base64"
 	"image"
 	"image/color"
 	"image/png"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/floatpane/termimage/detect"
 )
+
+func makePNG(t *testing.T) []byte {
+	t.Helper()
+	src := image.NewNRGBA(image.Rect(0, 0, 4, 4))
+	for y := 0; y < 4; y++ {
+		for x := 0; x < 4; x++ {
+			src.SetNRGBA(x, y, color.NRGBA{R: uint8(x * 64), G: uint8(y * 64), A: 255})
+		}
+	}
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, src); err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	return buf.Bytes()
+}
 
 func TestProtocolConstants(t *testing.T) {
 	// Public re-exports should match the detect package.
@@ -113,6 +131,45 @@ func TestDisplay_AutoProtocolPicksOne(t *testing.T) {
 	}
 	if out.Len() == 0 {
 		t.Errorf("Display produced no output")
+	}
+}
+
+func TestDisplay_DataURI(t *testing.T) {
+	pngBytes := makePNG(t)
+	uri := "data:image/png;base64," + base64.StdEncoding.EncodeToString(pngBytes)
+
+	var out bytes.Buffer
+	err := Display(&out, uri, Options{
+		MaxWidth:  80,
+		MaxHeight: 24,
+		Protocol:  HalfBlock,
+	})
+	if err != nil {
+		t.Fatalf("Display: %v", err)
+	}
+	if !bytes.Contains(out.Bytes(), []byte("▀")) {
+		t.Errorf("expected half-block glyph in output")
+	}
+}
+
+func TestDisplay_RemoteHTTP(t *testing.T) {
+	pngBytes := makePNG(t)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(pngBytes)
+	}))
+	defer srv.Close()
+
+	var out bytes.Buffer
+	err := Display(&out, srv.URL+"/cat.png", Options{
+		MaxWidth:  80,
+		MaxHeight: 24,
+		Protocol:  HalfBlock,
+	})
+	if err != nil {
+		t.Fatalf("Display: %v", err)
+	}
+	if !bytes.Contains(out.Bytes(), []byte("▀")) {
+		t.Errorf("expected half-block glyph in output")
 	}
 }
 

@@ -7,11 +7,28 @@ title: API Reference
 ## `termimage.Display`
 
 ```go
-func Display(w io.Writer, path string, opts Options) error
+func Display(w io.Writer, src string, opts Options) error
 ```
 
-Decodes the image at `path` and writes terminal graphics to `w`. Returns the
-first error encountered (file open, decode, or render failure).
+Decodes the image at `src` and writes terminal graphics to `w`. `src` may be:
+
+- a local file path (`/path/to/cat.png`)
+- an `http(s)://` URL
+- a `data:` URI with a base64 payload (`data:image/png;base64,...`)
+
+Remote URLs and data URIs are fetched/decoded in the parent process, then
+piped to the sandboxed worker over stdin. Payloads are capped at **64 MiB**.
+
+Returns the first error encountered (fetch, decode, or render failure).
+
+## `termimage.DisplayContext`
+
+```go
+func DisplayContext(ctx context.Context, w io.Writer, src string, opts Options) error
+```
+
+Same as `Display` but takes a `context.Context` for cancellation of HTTP
+fetches and sandboxed decoding.
 
 ## `termimage.Options`
 
@@ -47,5 +64,6 @@ image, writes raw RGBA to stdout, and calls `os.Exit(0)`.
 | `decode` | CGo stb_image binding. `decode.File(path)` and `decode.Bytes(data)` |
 | `detect` | Protocol detection. `detect.Best()` |
 | `render` | `render.Kitty`, `render.Sixel`, `render.HalfBlock` |
-| `sandbox` | Subprocess worker. `sandbox.Decode(path)` |
+| `sandbox` | Subprocess worker. `sandbox.Decode(path)`, `sandbox.DecodeBytes(data)` |
+| `internal/source` | Source resolver. Branches file path / `data:` URI / `http(s)://` URL |
 | `internal/resize` | `resize.Fit(img, maxW, maxH)` — BiLinear scale |

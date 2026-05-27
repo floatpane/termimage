@@ -12,6 +12,7 @@
 package termimage
 
 import (
+	"context"
 	"image"
 	"io"
 	"os"
@@ -19,6 +20,7 @@ import (
 	"github.com/floatpane/termimage/decode"
 	"github.com/floatpane/termimage/detect"
 	"github.com/floatpane/termimage/internal/resize"
+	"github.com/floatpane/termimage/internal/source"
 	"github.com/floatpane/termimage/render"
 	"github.com/floatpane/termimage/sandbox"
 )
@@ -51,8 +53,15 @@ type Options struct {
 	Sandboxed bool
 }
 
-// Display decodes the image at path and writes terminal graphics to w.
-func Display(w io.Writer, path string, opts Options) error {
+// Display decodes the image at src and writes terminal graphics to w.
+// src may be a local file path, a data: URI, or an http(s):// URL.
+func Display(w io.Writer, src string, opts Options) error {
+	return DisplayContext(context.Background(), w, src, opts)
+}
+
+// DisplayContext is Display with caller-supplied context for cancellation of
+// remote fetches and sandboxed decoding.
+func DisplayContext(ctx context.Context, w io.Writer, src string, opts Options) error {
 	maxW, maxH := effectiveDimensions(opts)
 
 	proto := opts.Protocol
@@ -60,13 +69,25 @@ func Display(w io.Writer, path string, opts Options) error {
 		proto = detect.Best()
 	}
 
-	var img *image.NRGBA
-	var err error
+	resolved, err := source.Resolve(ctx, src)
+	if err != nil {
+		return err
+	}
 
-	if opts.Sandboxed {
-		img, err = sandbox.Decode(path)
-	} else {
-		img, err = decode.File(path)
+	var img *image.NRGBA
+	switch resolved.Kind {
+	case source.KindFile:
+		if opts.Sandboxed {
+			img, err = sandbox.DecodeContext(ctx, resolved.Path)
+		} else {
+			img, err = decode.File(resolved.Path)
+		}
+	case source.KindBytes:
+		if opts.Sandboxed {
+			img, err = sandbox.DecodeBytesContext(ctx, resolved.Bytes)
+		} else {
+			img, err = decode.Bytes(resolved.Bytes)
+		}
 	}
 	if err != nil {
 		return err

@@ -11,6 +11,7 @@
 package sandbox
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"fmt"
@@ -21,7 +22,18 @@ import (
 	"path/filepath"
 )
 
-const workerEnv = "TERMIMAGE_WORKER"
+const (
+	workerEnv     = "TERMIMAGE_WORKER"
+	workerModeEnv = "TERMIMAGE_WORKER_MODE"
+	workerPathEnv = "TERMIMAGE_WORKER_PATH"
+
+	modePath  = "path"
+	modeStdin = "stdin"
+
+	// maxStdinBytes caps the payload the worker will read from stdin to avoid
+	// unbounded allocation if the parent misbehaves.
+	maxStdinBytes = 256 * 1024 * 1024
+)
 
 // IsWorker reports whether this process was spawned as a sandbox worker.
 func IsWorker() bool {
@@ -51,14 +63,44 @@ func Decode(path string) (*image.NRGBA, error) {
 
 // DecodeContext is Decode with caller-supplied context for cancellation.
 func DecodeContext(ctx context.Context, path string) (*image.NRGBA, error) {
+	return spawn(ctx, modePath, path, nil)
+}
+
+// DecodeBytes spawns a sandboxed worker subprocess to decode raw image bytes
+// piped over stdin. Used for data: URIs and remote URLs where there is no
+// on-disk file to grant access to.
+func DecodeBytes(data []byte) (*image.NRGBA, error) {
+	return DecodeBytesContext(context.Background(), data)
+}
+
+// DecodeBytesContext is DecodeBytes with caller-supplied context.
+func DecodeBytesContext(ctx context.Context, data []byte) (*image.NRGBA, error) {
+	if len(data) == 0 {
+		return nil, fmt.Errorf("sandbox: empty input")
+	}
+	if len(data) > maxStdinBytes {
+		return nil, fmt.Errorf("sandbox: input exceeds %d bytes", maxStdinBytes)
+	}
+	return spawn(ctx, modeStdin, "", data)
+}
+
+func spawn(ctx context.Context, mode, path string, stdinData []byte) (*image.NRGBA, error) {
 	self, err := os.Executable()
 	if err != nil {
 		return nil, fmt.Errorf("sandbox: resolve self: %w", err)
 	}
 
 	cmd := exec.CommandContext(ctx, self)
-	cmd.Env = append(os.Environ(), workerEnv+"=1", "TERMIMAGE_WORKER_PATH="+path)
+	env := append(os.Environ(), workerEnv+"=1", workerModeEnv+"="+mode)
+	if mode == modePath {
+		env = append(env, workerPathEnv+"="+path)
+	}
+	cmd.Env = env
 	cmd.Stderr = os.Stderr
+
+	if mode == modeStdin {
+		cmd.Stdin = bytes.NewReader(stdinData)
+	}
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -81,9 +123,25 @@ func DecodeContext(ctx context.Context, path string) (*image.NRGBA, error) {
 
 // runWorker is called inside the sandboxed child process.
 func runWorker() error {
-	path := os.Getenv("TERMIMAGE_WORKER_PATH")
+	mode := os.Getenv(workerModeEnv)
+	if mode == "" {
+		mode = modePath // legacy default
+	}
+
+	switch mode {
+	case modePath:
+		return runPathWorker()
+	case modeStdin:
+		return runStdinWorker()
+	default:
+		return fmt.Errorf("unknown worker mode %q", mode)
+	}
+}
+
+func runPathWorker() error {
+	path := os.Getenv(workerPathEnv)
 	if path == "" {
-		return fmt.Errorf("TERMIMAGE_WORKER_PATH not set")
+		return fmt.Errorf("%s not set", workerPathEnv)
 	}
 
 	clean := filepath.Clean(path)
@@ -96,6 +154,31 @@ func runWorker() error {
 	data, err := os.ReadFile(clean) //#nosec G304,G703 -- worker reads attacker-controlled path by design; Landlock restricts access to this single file
 	if err != nil {
 		return fmt.Errorf("read: %w", err)
+	}
+
+	img, err := decodeBytes(data)
+	if err != nil {
+		return fmt.Errorf("decode: %w", err)
+	}
+
+	return writePixels(os.Stdout, img)
+}
+
+func runStdinWorker() error {
+	// No filesystem access needed — lock down before reading bytes.
+	if err := apply(""); err != nil {
+		return fmt.Errorf("sandbox apply: %w", err)
+	}
+
+	data, err := io.ReadAll(io.LimitReader(os.Stdin, maxStdinBytes+1))
+	if err != nil {
+		return fmt.Errorf("read stdin: %w", err)
+	}
+	if len(data) == 0 {
+		return fmt.Errorf("read stdin: empty")
+	}
+	if len(data) > maxStdinBytes {
+		return fmt.Errorf("read stdin: payload exceeds %d bytes", maxStdinBytes)
 	}
 
 	img, err := decodeBytes(data)

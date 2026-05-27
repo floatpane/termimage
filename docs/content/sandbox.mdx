@@ -16,14 +16,18 @@ do.
 
 When `Sandboxed: true`:
 
-1. The parent process spawns `os.Executable()` as a subprocess with
-   `TERMIMAGE_WORKER=1` and `TERMIMAGE_WORKER_PATH=<path>` in the environment.
-2. The child calls `MaybeRunWorker()`, which detects the env var and takes
+1. The parent resolves the source (file / `data:` URI / `http(s)://` URL).
+   Remote fetches and base64 decode happen here, **outside** the sandbox.
+2. The parent spawns `os.Executable()` as a subprocess with `TERMIMAGE_WORKER=1`
+   and `TERMIMAGE_WORKER_MODE=path|stdin` in the environment. For path mode
+   it also sets `TERMIMAGE_WORKER_PATH=<path>`; for stdin mode it pipes the
+   bytes to the child's stdin.
+3. The child calls `MaybeRunWorker()`, which detects the env var and takes
    over.
-3. **Before opening the file**, the child applies OS restrictions.
-4. The child reads, decodes, and writes raw RGBA pixels (`width[4] + height[4]
-   + pixels`) to stdout.
-5. The parent reads the pixel data over the pipe and renders it.
+4. **Before touching any input**, the child applies OS restrictions.
+5. The child decodes and writes raw RGBA pixels (`width[4] + height[4] +
+   pixels`) to stdout.
+6. The parent reads the pixel data over the pipe and renders it.
 
 > [!CAUTION]
 > The sandboxed child re-execs **your binary**, not a dedicated helper. If your
@@ -33,14 +37,28 @@ When `Sandboxed: true`:
 
 ## Landlock (Linux ≥5.13)
 
-Landlock restricts filesystem access to the target file only, read-only:
+In **path mode** (local file), Landlock restricts filesystem access to the
+target file only, read-only:
 
 ```go
 landlock.V3.BestEffort().RestrictPaths(landlock.ROFiles(path))
 ```
 
+In **stdin mode** (remote URL / data URI), no file access is needed — the
+worker reads bytes from the pipe — so Landlock is configured with no granted
+paths, denying all filesystem access:
+
+```go
+landlock.V3.BestEffort().RestrictPaths() // empty = deny-all
+```
+
 `BestEffort()` silently degrades on older kernels — the binary still runs, just
 without Landlock protection.
+
+> [!NOTE]
+> Network access for remote URLs happens **in the parent**, before the
+> sandboxed child is spawned. The child itself never gets to make network
+> calls — the bytes are already in memory by the time it starts.
 
 ## Seccomp (upcoming)
 

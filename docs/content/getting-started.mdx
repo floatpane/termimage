@@ -61,3 +61,30 @@ termimage.Display(os.Stdout, path, termimage.Options{
     MaxHeight: 1080,
 })
 ```
+
+## Remote images and data URIs
+
+`Display` accepts any of these as `src`:
+
+```go
+// Local file
+termimage.Display(os.Stdout, "/path/to/cat.png", opts)
+
+// Remote URL
+termimage.Display(os.Stdout, "https://example.com/cat.png", opts)
+
+// Data URI (base64 only)
+termimage.Display(os.Stdout, "data:image/png;base64,iVBORw0KGgo...", opts)
+```
+
+Remote URLs are fetched in the parent process; payloads cap at 64 MiB. The
+sandboxed worker still runs — bytes are piped to it over stdin with Landlock
+denying all filesystem access.
+
+For cancellable fetches, use `DisplayContext`:
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+termimage.DisplayContext(ctx, os.Stdout, url, opts)
+```
