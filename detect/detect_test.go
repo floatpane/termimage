@@ -16,7 +16,17 @@ func TestBest(t *testing.T) {
 			want: Kitty,
 		},
 		{
-			name: "kitty via ghostty TERM",
+			name: "kitty via ghostty TERM=ghostty",
+			env:  map[string]string{"TERM": "ghostty"},
+			want: Kitty,
+		},
+		{
+			name: "kitty via ghostty TERM_PROGRAM=ghostty",
+			env:  map[string]string{"TERM_PROGRAM": "ghostty"},
+			want: Kitty,
+		},
+		{
+			name: "kitty via ghostty TERM=xterm-ghostty",
 			env:  map[string]string{"TERM": "xterm-ghostty"},
 			want: Kitty,
 		},

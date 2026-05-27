@@ -23,11 +23,11 @@ func Best() Protocol {
 		return Kitty
 	}
 
-	// Ghostty sets TERM=xterm-ghostty and supports Kitty graphics.
+	// Ghostty sets TERM=ghostty or TERM=xterm-ghostty, and TERM_PROGRAM=ghostty.
 	term := os.Getenv("TERM")
 	termProg := strings.ToLower(os.Getenv("TERM_PROGRAM"))
 
-	if strings.HasPrefix(term, "xterm-ghostty") {
+	if term == "ghostty" || strings.HasPrefix(term, "xterm-ghostty") || termProg == "ghostty" {
 		return Kitty
 	}
 

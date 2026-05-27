@@ -47,23 +47,22 @@ func TestProtocolConstants(t *testing.T) {
 }
 
 func TestEffectiveDimensions_ExplicitWidthAndHeight(t *testing.T) {
-	w, h := effectiveDimensions(Options{MaxWidth: 800, MaxHeight: 600})
+	w, h := effectiveDimensions(Options{MaxWidth: 800, MaxHeight: 600}, HalfBlock)
 	if w != 800 || h != 600 {
 		t.Errorf("got %dx%d, want 800x600", w, h)
 	}
 }
 
 func TestEffectiveDimensions_ZerosFallBackToDetected(t *testing.T) {
-	// With both 0, both come from detection. detectTermPixels returns 1920x1080
-	// when /dev/tty isn't available — accept any positive values.
-	w, h := effectiveDimensions(Options{})
+	// With both 0, both come from detection — accept any positive values.
+	w, h := effectiveDimensions(Options{}, HalfBlock)
 	if w <= 0 || h <= 0 {
 		t.Errorf("expected positive dimensions, got %dx%d", w, h)
 	}
 }
 
 func TestEffectiveDimensions_PartialOverride(t *testing.T) {
-	w, h := effectiveDimensions(Options{MaxWidth: 500})
+	w, h := effectiveDimensions(Options{MaxWidth: 500}, HalfBlock)
 	if w != 500 {
 		t.Errorf("MaxWidth=500 not honoured: got %d", w)
 	}

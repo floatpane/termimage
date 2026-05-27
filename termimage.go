@@ -62,12 +62,12 @@ func Display(w io.Writer, src string, opts Options) error {
 // DisplayContext is Display with caller-supplied context for cancellation of
 // remote fetches and sandboxed decoding.
 func DisplayContext(ctx context.Context, w io.Writer, src string, opts Options) error {
-	maxW, maxH := effectiveDimensions(opts)
-
 	proto := opts.Protocol
 	if proto == Auto {
 		proto = detect.Best()
 	}
+
+	maxW, maxH := effectiveDimensions(opts, proto)
 
 	resolved, err := source.Resolve(ctx, src)
 	if err != nil {
@@ -108,12 +108,24 @@ func renderWith(w io.Writer, img *image.NRGBA, proto Protocol) error {
 	}
 }
 
-func effectiveDimensions(opts Options) (int, int) {
+// effectiveDimensions returns the pixel bounds for image scaling.
+// For HalfBlock, terminal character dimensions drive the limit (1 char = 1px
+// wide, 2px tall) because the renderer emits one character per pixel column.
+// For Kitty/Sixel, the terminal's actual pixel viewport is used.
+func effectiveDimensions(opts Options, proto Protocol) (int, int) {
 	w, h := opts.MaxWidth, opts.MaxHeight
 	if w > 0 && h > 0 {
 		return w, h
 	}
-	tw, th := detectTermPixels()
+
+	var tw, th int
+	if proto == HalfBlock {
+		cols, rows := detectTermChars()
+		tw, th = cols, rows*2
+	} else {
+		tw, th = detectTermPixels()
+	}
+
 	if w <= 0 {
 		w = tw
 	}
@@ -130,4 +142,13 @@ func detectTermPixels() (int, int) {
 	}
 	defer func() { _ = f.Close() }()
 	return termPixels(f)
+}
+
+func detectTermChars() (int, int) {
+	f, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
+	if err != nil {
+		return 220, 50
+	}
+	defer func() { _ = f.Close() }()
+	return termChars(f)
 }
