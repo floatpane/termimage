@@ -1,6 +1,6 @@
 module github.com/floatpane/termimage
 
-go 1.26
+go 1.26.3
 
 require (
 	github.com/landlock-lsm/go-landlock v0.8.1
